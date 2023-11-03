@@ -8,7 +8,7 @@ bot = telebot.TeleBot('6526395657:AAHJSODAFWPnJN1o6SxVt11OlQ5Jc-wec-4')
 def create_table():
     conn = sqlite3.connect('gym_helper.db')
     cursor = conn.cursor()
-    cursor.execute('''
+    cursor.execute(''' 
         CREATE TABLE IF NOT EXISTS roles (
             user_id INTEGER PRIMARY KEY,
             role TEXT
@@ -87,7 +87,7 @@ def handle_role_selection(message):
 
 def handle_trainer_actions(user_id):
     trainer_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
-    trainer_keyboard.add("Добавить упражнение", "Просмотреть учеников", "План тренировок", "Отчеты")
+    trainer_keyboard.add("Добавить упражнение", "Просмотреть учеников", "План тренировок", "Отчеты", "Добавить ученика")
     bot.send_message(user_id, "Вот ваши действия как тренера:", reply_markup=trainer_keyboard)
 
 
@@ -136,15 +136,60 @@ def process_choose_trainer(message):
         bot.send_message(user_id, f"Тренера с ID {trainer_id} не существует.")
 
 
+@bot.message_handler(func=lambda message: message.text == "Добавить ученика")
+def add_student(message):
+    user_id = message.from_user.id
+    if get_user_role(user_id) != "Тренер":
+        bot.reply_to(message, "Только тренеры могут добавлять учеников.")
+    else:
+        bot.send_message(user_id, "Введите ID ученика, которого вы хотите добавить:")
+        bot.register_next_step_handler(message, process_add_student)
+
+
+def is_student_id_valid(student_id):
+    conn = sqlite3.connect('gym_helper.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM roles WHERE role='Ученик'")
+    students = cursor.fetchall()
+    conn.close()
+
+    student_ids = [str(student[0]) for student in students]
+    return student_id in student_ids
+
+
+def is_student_linked_to_another_trainer(student_id, trainer_id):
+    conn = sqlite3.connect('gym_helper.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM relations WHERE student_id=? AND trainer_id!=?", (student_id, trainer_id))
+    existing_relation = cursor.fetchone()
+    conn.close()
+    return existing_relation is not None
+
+
+def process_add_student(message):
+    user_id = message.from_user.id
+    student_id = message.text
+    if is_student_id_valid(student_id):
+        conn = sqlite3.connect('gym_helper.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM relations WHERE student_id=? AND trainer_id=?", (student_id, user_id))
+        existing_relation = cursor.fetchone()
+        if existing_relation:
+            bot.send_message(user_id, f"Связь между тренером и учеником уже существует.")
+        elif is_student_linked_to_another_trainer(student_id, user_id):
+            bot.send_message(user_id, f"У ученика с ID {student_id} уже есть другой тренер.")
+        else:
+            cursor.execute("INSERT INTO relations (student_id, trainer_id) VALUES (?, ?)", (student_id, user_id))
+            conn.commit()
+            bot.send_message(user_id, f"Ученик с ID {student_id} был добавлен.")
+        conn.close()
+    else:
+        bot.send_message(user_id, f"Ученика с ID {student_id} не существует.")
+
+
 def main():
     bot.polling()
 
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
