@@ -14,6 +14,14 @@ def create_table():
             role TEXT
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS relations (
+            student_id INTEGER,
+            trainer_id INTEGER,
+            FOREIGN KEY(student_id) REFERENCES roles(user_id),
+            FOREIGN KEY(trainer_id) REFERENCES roles(user_id)
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -52,7 +60,6 @@ def start(message):
             handle_trainer_actions(user_id)
         elif role == "Ученик":
             handle_student_actions(user_id)
-
     else:
         keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
         trainer_button = telebot.types.KeyboardButton(text="Тренер")
@@ -70,8 +77,7 @@ def handle_role_selection(message):
         role = message.text
         add_user_role(user_id, role)
         remove_keyboard = telebot.types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, "Вы выбрали роль" + role, reply_markup=remove_keyboard)
-        bot.reply_to(message, f"Роль {role} сохранена!")
+        bot.send_message(message.chat.id, "Вы выбрали роль " + role, reply_markup=remove_keyboard)
 
         if role == "Тренер":
             handle_trainer_actions(user_id)
@@ -79,16 +85,55 @@ def handle_role_selection(message):
             handle_student_actions(user_id)
 
 
-
 def handle_trainer_actions(user_id):
     trainer_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
     trainer_keyboard.add("Добавить упражнение", "Просмотреть учеников", "План тренировок", "Отчеты")
-    bot.send_message(user_id, "Вы выбрали роль Тренер. Вот ваши действия как тренера:", reply_markup=trainer_keyboard)
+    bot.send_message(user_id, "Вот ваши действия как тренера:", reply_markup=trainer_keyboard)
+
 
 def handle_student_actions(user_id):
     student_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
-    student_keyboard.add("Мои тренировки", "Просмотреть тренера", "Задать вопрос", "Отчеты")
-    bot.send_message(user_id, "Вы выбрали роль Ученик. Вот ваши действия как ученика:", reply_markup=student_keyboard)
+    student_keyboard.add("Мои тренировки", "Выбрать тренера", "Задать вопрос", "Отчеты")
+    bot.send_message(user_id, "Вот ваши действия как ученика:", reply_markup=student_keyboard)
+
+
+def is_trainer_id_valid(trainer_id):
+    conn = sqlite3.connect('gym_helper.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM roles WHERE role='Тренер'")
+    trainers = cursor.fetchall()
+    conn.close()
+
+    trainer_ids = [str(trainer[0]) for trainer in trainers]
+    return trainer_id in trainer_ids
+
+
+@bot.message_handler(func=lambda message: message.text == "Выбрать тренера")
+def choose_trainer(message):
+    user_id = message.from_user.id
+    if get_user_role(user_id) != "Ученик":
+        bot.reply_to(message, "Только ученики могут выбирать тренера.")
+    else:
+        bot.send_message(user_id, "Введите ID тренера, которого вы хотите выбрать:")
+        bot.register_next_step_handler(message, process_choose_trainer)
+
+
+def process_choose_trainer(message):
+    user_id = message.from_user.id
+    trainer_id = message.text
+    if is_trainer_id_valid(trainer_id):
+        conn = sqlite3.connect('gym_helper.db')
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR REPLACE INTO relations (student_id, trainer_id) VALUES (?, ?)", (user_id, trainer_id))
+        conn.commit()
+        conn.close()
+        bot.send_message(user_id, f"Тренер с ID {trainer_id} был выбран!")
+        replace_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
+        replace_keyboard.add("Мои тренировки", "Диалог с тренером", "Задать вопрос", "Отчеты")
+        bot.send_message(user_id, "Теперь вы можете перейти в диалог с тренером.", reply_markup=replace_keyboard)
+
+    else:
+        bot.send_message(user_id, f"Тренера с ID {trainer_id} не существует.")
 
 
 def main():
