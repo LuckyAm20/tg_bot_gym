@@ -11,7 +11,8 @@ def create_table():
     cursor.execute(''' 
         CREATE TABLE IF NOT EXISTS roles (
             user_id INTEGER PRIMARY KEY,
-            role TEXT
+            role TEXT,
+            username TEXT
         )
     ''')
     cursor.execute('''
@@ -26,10 +27,10 @@ def create_table():
     conn.close()
 
 
-def add_user_role(user_id, role):
+def add_user_role(user_id, role, username):
     conn = sqlite3.connect('gym_helper.db')
     cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO roles (user_id, role) VALUES (?, ?)", (user_id, role))
+    cursor.execute("INSERT OR REPLACE INTO roles (user_id, role, username) VALUES (?, ?, ?)", (user_id, role, username))
     conn.commit()
     conn.close()
 
@@ -75,7 +76,8 @@ def handle_role_selection(message):
         bot.reply_to(message, "Ваша роль уже выбрана.")
     else:
         role = message.text
-        add_user_role(user_id, role)
+        username = message.from_user.username if message.from_user.username else (message.from_user.first_name + " " + (message.from_user.last_name if message.from_user.last_name else ""))
+        add_user_role(user_id, role, username)
         remove_keyboard = telebot.types.ReplyKeyboardRemove()
         bot.send_message(message.chat.id, "Вы выбрали роль " + role, reply_markup=remove_keyboard)
 
@@ -187,7 +189,28 @@ def process_add_student(message):
         bot.send_message(user_id, f"Ученика с ID {student_id} не существует.")
 
 
+@bot.message_handler(func=lambda message: message.text == "Просмотреть учеников")
+def view_all_students(message):
+    user_id = message.from_user.id
+    if get_user_role(user_id) != "Тренер":
+        bot.reply_to(message, "Только тренеры могут просматривать учеников.")
+    else:
+        conn = sqlite3.connect('gym_helper.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id, username FROM relations JOIN roles ON relations.student_id = roles.user_id WHERE relations.trainer_id = ?", (user_id,))
+        students = cursor.fetchall()
+        conn.close()
+
+        if students:
+            student_names = [f"{student[1]}" for student in students]
+            all_students = "\n".join(student_names)
+            bot.send_message(user_id, f"Список всех учеников:\n{all_students}")
+        else:
+            bot.send_message(user_id, "У вас пока нет зарегистрированных учеников.")
+
+
 def main():
+    create_table()
     bot.polling()
 
 
