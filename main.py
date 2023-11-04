@@ -1,5 +1,6 @@
 import telebot
 import sqlite3
+import datetime
 
 
 bot = telebot.TeleBot('6526395657:AAHJSODAFWPnJN1o6SxVt11OlQ5Jc-wec-4')
@@ -207,6 +208,70 @@ def view_all_students(message):
             bot.send_message(user_id, f"Список всех учеников:\n{all_students}")
         else:
             bot.send_message(user_id, "У вас пока нет зарегистрированных учеников.")
+
+
+@bot.message_handler(func=lambda message: message.text == "План тренировок")
+def input_student_id_for_workout_plan(message):
+    user_id = message.from_user.id
+    if get_user_role(user_id) == "Тренер":
+        bot.send_message(user_id, "Введите ID ученика для добавления плана тренировок:")
+        bot.register_next_step_handler(message, process_student_id_for_workout_plan)
+    else:
+        pass
+
+
+def process_student_id_for_workout_plan(message):
+    user_id = message.from_user.id
+    student_id = message.text
+    if is_valid_student_id_for_trainer(user_id, student_id):
+        bot.send_message(user_id, "Введите дату тренировки в формате ГГГГ-ММ-ДД:")
+        bot.register_next_step_handler(message, lambda msg: process_workout_date_for_plan(msg, student_id))
+    else:
+        bot.send_message(user_id, f"Вы не можете добавить план тренировки для ученика с ID {student_id}.")
+
+
+def is_valid_student_id_for_trainer(trainer_id, student_id):
+    conn = sqlite3.connect('gym_helper.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM relations WHERE trainer_id=? AND student_id=?", (trainer_id, student_id))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+
+def process_workout_date_for_plan(message, student_id):
+    user_id = message.from_user.id
+    workout_date = message.text
+    try:
+        workout_date = datetime.datetime.strptime(workout_date, '%Y-%m-%d').date()
+        bot.send_message(user_id, "Введите план тренировки на данный день:")
+        bot.register_next_step_handler(message, lambda msg: save_workout_plan(msg, student_id, workout_date))
+    except ValueError:
+        bot.send_message(user_id, "Некорректный формат даты. Пожалуйста, введите дату в формате ГГГГ-ММ-ДД.")
+        bot.register_next_step_handler(message, lambda msg: process_workout_date_for_plan(msg, student_id))
+
+
+def save_workout_plan(message, student_id, workout_date):
+    user_id = message.from_user.id
+    workout_plan = message.text
+    add_workout_plan_to_database(student_id, workout_date, workout_plan)
+    bot.send_message(user_id, f"План тренировки для ученика с ID {student_id} на {workout_date} сохранен.")
+
+
+def add_workout_plan_to_database(student_id, workout_date, workout_plan):
+    conn = sqlite3.connect('gym_helper.db')
+    cursor = conn.cursor()
+    table_name = f"workout_plans_{student_id}"
+    cursor.execute(f'''
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            id INTEGER PRIMARY KEY,
+            workout_date DATE,
+            workout_plan TEXT
+        )
+    ''')
+    cursor.execute(f"INSERT INTO {table_name} (workout_date, workout_plan) VALUES (?, ?)", (workout_date, workout_plan))
+    conn.commit()
+    conn.close()
 
 
 def main():
