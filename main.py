@@ -48,26 +48,40 @@ def get_user_role(user_id):
 @bot.message_handler(commands=['start'])
 def start(message):
     user = message.from_user
-    user_id = user.id
-    conn = sqlite3.connect('gym_helper.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM roles WHERE user_id=?", (user_id,))
-    result = cursor.fetchone()
-    conn.close()
-
-    if result:
-        role = result[1]
-        bot.reply_to(message, f"Привет, {user.first_name}! Ваша роль уже выбрана: {role}.")
-        if role == "Тренер":
-            handle_trainer_actions(user_id)
-        elif role == "Ученик":
-            handle_student_actions(user_id)
+    if user.username is None:
+        bot.send_message(user.id, "Для использования бота, пожалуйста, установите username в настройках Telegram.")
+        bot.send_message(user.id, "Как только вы установите username, напишите любое сообщение для продолжения.")
+        bot.register_next_step_handler(message, check_username_set)
     else:
-        keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
-        trainer_button = telebot.types.KeyboardButton(text="Тренер")
-        student_button = telebot.types.KeyboardButton(text="Ученик")
-        keyboard.add(trainer_button, student_button)
-        bot.send_message(user_id, f"Привет, {user.first_name}! Выберите вашу роль:", reply_markup=keyboard)
+        user_id = user.id
+        conn = sqlite3.connect('gym_helper.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM roles WHERE user_id=?", (user_id,))
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            role = result[1]
+            bot.reply_to(message, f"Привет, {user.first_name}! Ваша роль уже выбрана: {role}.")
+            if role == "Тренер":
+                handle_trainer_actions(user_id)
+            elif role == "Ученик":
+                handle_student_actions(user_id)
+        else:
+            keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
+            trainer_button = telebot.types.KeyboardButton(text="Тренер")
+            student_button = telebot.types.KeyboardButton(text="Ученик")
+            keyboard.add(trainer_button, student_button)
+            bot.send_message(user_id, f"Привет, {user.first_name}! Выберите вашу роль:", reply_markup=keyboard)
+
+
+def check_username_set(message):
+    user = message.from_user
+    if user.username is None:
+        bot.send_message(user.id, "Пожалуйста, установите username в настройках Telegram.")
+        bot.register_next_step_handler(message, check_username_set)
+    else:
+        start(message)
 
 
 @bot.message_handler(func=lambda message: message.text in ["Тренер", "Ученик"])
@@ -77,7 +91,7 @@ def handle_role_selection(message):
         bot.reply_to(message, "Ваша роль уже выбрана.")
     else:
         role = message.text
-        username = message.from_user.username if message.from_user.username else (message.from_user.first_name + " " + (message.from_user.last_name if message.from_user.last_name else ""))
+        username = message.from_user.username
         add_user_role(user_id, role, username)
         remove_keyboard = telebot.types.ReplyKeyboardRemove()
         bot.send_message(message.chat.id, "Вы выбрали роль " + role, reply_markup=remove_keyboard)
