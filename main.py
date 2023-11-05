@@ -1,6 +1,9 @@
 import telebot
 import sqlite3
 import datetime
+import requests
+deepai_api_key = '7ec4f233-4340-4975-b3c8-bcd00df7fe9d'
+
 
 bot = telebot.TeleBot('6526395657:AAHJSODAFWPnJN1o6SxVt11OlQ5Jc-wec-4')
 
@@ -103,7 +106,7 @@ def handle_role_selection(message):
 
 def handle_trainer_actions(user_id):
     trainer_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
-    trainer_keyboard.add("Добавить упражнение", "Просмотреть учеников", "План тренировок", "Отчеты", "Добавить ученика")
+    trainer_keyboard.add("Добавить упражнение", "Просмотреть учеников", "План тренировок", "Отчеты", "Добавить ученика", "Запрос в GPT")
     bot.send_message(user_id, "Вот ваши действия как тренера:", reply_markup=trainer_keyboard)
 
 
@@ -351,6 +354,33 @@ def add_workout_plan_to_database(student_id, workout_date, workout_plan):
                        (workout_date, workout_plan))
     conn.commit()
     conn.close()
+
+
+@bot.message_handler(func=lambda message: message.text == "Запрос в GPT")
+def send_gpt_request(message):
+    user_id = message.from_user.id
+    if get_user_role(user_id) == "Тренер":
+        bot.send_message(user_id, "Введите ваш запрос для GPT:")
+        bot.register_next_step_handler(message, process_gpt_request)
+    else:
+        bot.send_message(user_id, "Эта опция доступна только тренерам.")
+
+
+def process_gpt_request(message):
+    user_id = message.from_user.id
+    request = message.text
+
+    response = requests.post(
+        "https://api.deepai.org/api/text-generator",
+        data={'text': request},
+        headers={'api-key': deepai_api_key}
+    )
+
+    if response.status_code == 200:
+        generated_text = response.json()['output']
+        bot.send_message(user_id, f"Аналог упражнения, созданный deepai.org: {generated_text}")
+    else:
+        bot.send_message(user_id, f"Ошибка при запросе к deepai.org: {response.text}")
 
 
 def main():
