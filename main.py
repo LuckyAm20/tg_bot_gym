@@ -109,7 +109,7 @@ def handle_trainer_actions(user_id):
 
 def handle_student_actions(user_id):
     student_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
-    student_keyboard.add("Мои тренировки", "Выбрать тренера", "Задать вопрос", "Отчеты")
+    student_keyboard.add("План тренировок", "Выбрать тренера", "Задать вопрос", "Отчеты")
     bot.send_message(user_id, "Вот ваши действия как ученика:", reply_markup=student_keyboard)
 
 
@@ -139,7 +139,7 @@ def process_choose_trainer(message):
             conn.close()
             bot.send_message(user_id, f"Тренер {trainer_username} был выбран!")
             replace_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
-            replace_keyboard.add("Мои тренировки", "Диалог с тренером", "Задать вопрос", "Отчеты")
+            replace_keyboard.add("План тренировок", "Диалог с тренером", "Задать вопрос", "Отчеты")
             bot.send_message(user_id, "Теперь вы можете перейти в диалог с тренером.", reply_markup=replace_keyboard)
         else:
             bot.send_message(user_id, "Связь между вами и этим тренером уже существует.")
@@ -251,12 +251,41 @@ def input_student_id_for_workout_plan(message):
     user_id = message.from_user.id
     if get_user_role(user_id) == "Тренер":
         bot.send_message(user_id, "Введите username ученика для добавления плана тренировок:")
-        bot.register_next_step_handler(message, process_student_id_for_workout_plan)
+        bot.register_next_step_handler(message, add_workout_plan)
+    elif get_user_role(user_id) == "Ученик":
+        watch_workout_plan(message)
     else:
-        pass
+        bot.send_message(user_id,
+                         "Чтобы получить доступ к плану тренировок, вам необходимо иметь статус тренера или ученика.")
 
 
-def process_student_id_for_workout_plan(message):
+def watch_workout_plan(message):
+    user_id = message.from_user.id
+    user_username = message.from_user.username
+
+    if message.from_user.id is not None:
+        conn = sqlite3.connect('gym_helper.db')
+        cursor = conn.cursor()
+        table_name = f"workout_plans_{user_id}"
+        today = datetime.datetime.now()
+        start_of_week = today - datetime.timedelta(days=today.weekday())
+        end_of_week = start_of_week + datetime.timedelta(days=6)
+        cursor.execute(f"SELECT workout_date, workout_plan FROM {table_name} WHERE workout_date BETWEEN ? AND ?", (start_of_week.date(), end_of_week.date()))
+        workout_plans = cursor.fetchall()
+        conn.close()
+
+        if workout_plans:
+            response = f"Ваш план тренировок на текущую неделю с {start_of_week.date()} по {end_of_week.date()}:\n"
+            for workout_date, workout_plan in workout_plans:
+                response += f"Дата: {workout_date}, План: {workout_plan}\n"
+            bot.send_message(user_id, response)
+        else:
+            bot.send_message(user_id, "У вас пока нет плана тренировок на текущую неделю.")
+    else:
+        bot.send_message(user_id, f"Ученика с username {user_username} не существует.")
+
+
+def add_workout_plan(message):
     user_id = message.from_user.id
     student_username = message.text
     student_id = get_student_id_by_username(student_username)
