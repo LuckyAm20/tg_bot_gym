@@ -2,7 +2,6 @@ import telebot
 import sqlite3
 import datetime
 
-
 bot = telebot.TeleBot('6526395657:AAHJSODAFWPnJN1o6SxVt11OlQ5Jc-wec-4')
 
 
@@ -119,27 +118,51 @@ def choose_trainer(message):
     user_id = message.from_user.id
     if get_user_role(user_id) != "Ученик":
         bot.reply_to(message, "Только ученики могут выбирать тренера.")
-    else:
+    elif not has_trainer(user_id):
         bot.send_message(user_id, "Введите username тренера, которого вы хотите выбрать:")
         bot.register_next_step_handler(message, process_choose_trainer)
+    else:
+        bot.send_message(user_id, "У вас уже есть тренер.")
 
 
 def process_choose_trainer(message):
     user_id = message.from_user.id
     trainer_username = message.text
     trainer_id = get_trainer_id_by_username(trainer_username)
+
     if trainer_id is not None:
-        conn = sqlite3.connect('gym_helper.db')
-        cursor = conn.cursor()
-        cursor.execute("INSERT OR REPLACE INTO relations (student_id, trainer_id) VALUES (?, ?)", (user_id, trainer_id))
-        conn.commit()
-        conn.close()
-        bot.send_message(user_id, f"Тренер {trainer_username} был выбран!")
-        replace_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
-        replace_keyboard.add("Мои тренировки", "Диалог с тренером", "Задать вопрос", "Отчеты")
-        bot.send_message(user_id, "Теперь вы можете перейти в диалог с тренером.", reply_markup=replace_keyboard)
+        if not is_relation_exist(user_id, trainer_id):
+            conn = sqlite3.connect('gym_helper.db')
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO relations (student_id, trainer_id) VALUES (?, ?)", (user_id, trainer_id))
+            conn.commit()
+            conn.close()
+            bot.send_message(user_id, f"Тренер {trainer_username} был выбран!")
+            replace_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
+            replace_keyboard.add("Мои тренировки", "Диалог с тренером", "Задать вопрос", "Отчеты")
+            bot.send_message(user_id, "Теперь вы можете перейти в диалог с тренером.", reply_markup=replace_keyboard)
+        else:
+            bot.send_message(user_id, "Связь между вами и этим тренером уже существует.")
     else:
         bot.send_message(user_id, f"Тренера с username {trainer_username} не существует.")
+
+
+def has_trainer(student_id):
+    conn = sqlite3.connect('gym_helper.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM relations WHERE student_id=?", (student_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+
+def is_relation_exist(student_id, trainer_id):
+    conn = sqlite3.connect('gym_helper.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM relations WHERE student_id=? AND trainer_id=?", (student_id, trainer_id))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
 
 
 def get_trainer_id_by_username(username):
@@ -209,7 +232,9 @@ def view_all_students(message):
     else:
         conn = sqlite3.connect('gym_helper.db')
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, username FROM relations JOIN roles ON relations.student_id = roles.user_id WHERE relations.trainer_id = ?", (user_id,))
+        cursor.execute(
+            "SELECT user_id, username FROM relations JOIN roles ON relations.student_id = roles.user_id WHERE relations.trainer_id = ?",
+            (user_id,))
         students = cursor.fetchall()
         conn.close()
 
@@ -238,9 +263,11 @@ def process_student_id_for_workout_plan(message):
     if student_id is not None:
         if is_valid_student_id_for_trainer(user_id, student_id):
             bot.send_message(user_id, "Введите дату тренировки в формате ГГГГ-ММ-ДД:")
-            bot.register_next_step_handler(message, lambda msg: process_workout_date_for_plan(msg, student_id, student_username))
+            bot.register_next_step_handler(message,
+                                           lambda msg: process_workout_date_for_plan(msg, student_id, student_username))
         else:
-            bot.send_message(user_id, f"Вы не можете добавить план тренировки для ученика с username {student_username}.")
+            bot.send_message(user_id,
+                             f"Вы не можете добавить план тренировки для ученика с username {student_username}.")
     else:
         bot.send_message(user_id, f"Ученика с username {student_username} не существует.")
 
@@ -260,10 +287,12 @@ def process_workout_date_for_plan(message, student_id, student_username):
     try:
         workout_date = datetime.datetime.strptime(workout_date, '%Y-%m-%d').date()
         bot.send_message(user_id, "Введите план тренировки на данный день:")
-        bot.register_next_step_handler(message, lambda msg: save_workout_plan(msg, student_id, workout_date, student_username))
+        bot.register_next_step_handler(message,
+                                       lambda msg: save_workout_plan(msg, student_id, workout_date, student_username))
     except ValueError:
         bot.send_message(user_id, "Некорректный формат даты. Пожалуйста, введите дату в формате ГГГГ-ММ-ДД.")
-        bot.register_next_step_handler(message, lambda msg: process_workout_date_for_plan(msg, student_id, student_username))
+        bot.register_next_step_handler(message,
+                                       lambda msg: process_workout_date_for_plan(msg, student_id, student_username))
 
 
 def save_workout_plan(message, student_id, workout_date, student_username):
