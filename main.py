@@ -225,7 +225,7 @@ def view_all_students(message):
 def input_student_id_for_workout_plan(message):
     user_id = message.from_user.id
     if get_user_role(user_id) == "Тренер":
-        bot.send_message(user_id, "Введите ID ученика для добавления плана тренировок:")
+        bot.send_message(user_id, "Введите username ученика для добавления плана тренировок:")
         bot.register_next_step_handler(message, process_student_id_for_workout_plan)
     else:
         pass
@@ -233,12 +233,16 @@ def input_student_id_for_workout_plan(message):
 
 def process_student_id_for_workout_plan(message):
     user_id = message.from_user.id
-    student_id = message.text
-    if is_valid_student_id_for_trainer(user_id, student_id):
-        bot.send_message(user_id, "Введите дату тренировки в формате ГГГГ-ММ-ДД:")
-        bot.register_next_step_handler(message, lambda msg: process_workout_date_for_plan(msg, student_id))
+    student_username = message.text
+    student_id = get_student_id_by_username(student_username)
+    if student_id is not None:
+        if is_valid_student_id_for_trainer(user_id, student_id):
+            bot.send_message(user_id, "Введите дату тренировки в формате ГГГГ-ММ-ДД:")
+            bot.register_next_step_handler(message, lambda msg: process_workout_date_for_plan(msg, student_id, student_username))
+        else:
+            bot.send_message(user_id, f"Вы не можете добавить план тренировки для ученика с username {student_username}.")
     else:
-        bot.send_message(user_id, f"Вы не можете добавить план тренировки для ученика с ID {student_id}.")
+        bot.send_message(user_id, f"Ученика с username {student_username} не существует.")
 
 
 def is_valid_student_id_for_trainer(trainer_id, student_id):
@@ -250,23 +254,23 @@ def is_valid_student_id_for_trainer(trainer_id, student_id):
     return result is not None
 
 
-def process_workout_date_for_plan(message, student_id):
+def process_workout_date_for_plan(message, student_id, student_username):
     user_id = message.from_user.id
     workout_date = message.text
     try:
         workout_date = datetime.datetime.strptime(workout_date, '%Y-%m-%d').date()
         bot.send_message(user_id, "Введите план тренировки на данный день:")
-        bot.register_next_step_handler(message, lambda msg: save_workout_plan(msg, student_id, workout_date))
+        bot.register_next_step_handler(message, lambda msg: save_workout_plan(msg, student_id, workout_date, student_username))
     except ValueError:
         bot.send_message(user_id, "Некорректный формат даты. Пожалуйста, введите дату в формате ГГГГ-ММ-ДД.")
-        bot.register_next_step_handler(message, lambda msg: process_workout_date_for_plan(msg, student_id))
+        bot.register_next_step_handler(message, lambda msg: process_workout_date_for_plan(msg, student_id, student_username))
 
 
-def save_workout_plan(message, student_id, workout_date):
+def save_workout_plan(message, student_id, workout_date, student_username):
     user_id = message.from_user.id
     workout_plan = message.text
     add_workout_plan_to_database(student_id, workout_date, workout_plan)
-    bot.send_message(user_id, f"План тренировки для ученика с ID {student_id} на {workout_date} сохранен.")
+    bot.send_message(user_id, f"План тренировки для ученика с username {student_username} на {workout_date} сохранен.")
 
 
 def add_workout_plan_to_database(student_id, workout_date, workout_plan):
@@ -280,7 +284,13 @@ def add_workout_plan_to_database(student_id, workout_date, workout_plan):
             workout_plan TEXT
         )
     ''')
-    cursor.execute(f"INSERT INTO {table_name} (workout_date, workout_plan) VALUES (?, ?)", (workout_date, workout_plan))
+    cursor.execute(f"SELECT * FROM {table_name} WHERE workout_date=?", (workout_date,))
+    existing_workout = cursor.fetchone()
+    if existing_workout:
+        cursor.execute(f"UPDATE {table_name} SET workout_plan=? WHERE workout_date=?", (workout_plan, workout_date))
+    else:
+        cursor.execute(f"INSERT INTO {table_name} (workout_date, workout_plan) VALUES (?, ?)",
+                       (workout_date, workout_plan))
     conn.commit()
     conn.close()
 
