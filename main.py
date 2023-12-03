@@ -1,6 +1,11 @@
+import datetime
+import os
+import sqlite3
+
 import telebot
 
 from gym_bot_project.databases.create_general_table import create_table
+from gym_bot_project.functions import save_video
 from gym_bot_project.functions.nutrition_plan import nutrition_plan
 from gym_bot_project.functions.start import start
 from gym_bot_project.functions.trainer_student import handle_role_selection
@@ -50,6 +55,11 @@ def nutrition_plan_main(message):
 @bot.message_handler(func=lambda message: message.text == "Запрос в GPT")
 def send_gpt_request(message):
     GPTRequest().send_gpt_request(message, bot)
+
+
+@bot.message_handler(content_types=['video'])
+def save_video_main(message):
+    save_video(message, bot)
 
 
 def main():

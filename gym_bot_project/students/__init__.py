@@ -3,3 +3,4 @@ from .watch_plan import watch_workout_plan
 from .process_add_student import process_add_student
 from .get_student_id import get_student_id_by_username
 from .watch_nutrition_plan import watch_nutrition_plan
+from .save_video_student import save_video_file
