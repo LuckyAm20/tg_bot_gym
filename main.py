@@ -7,7 +7,7 @@ from gym_bot_project.functions.nutrition_plan import nutrition_plan
 from gym_bot_project.functions.start import start
 from gym_bot_project.functions.trainer_student import handle_role_selection
 from gym_bot_project.functions.view_students import view_students
-from gym_bot_project.functions.training_plan import workout_plan
+from gym_bot_project.functions.training_plan import workout_plan, workout_plan_callback, custom_date_callback, handle_custom_date
 from gym_bot_project.functions.add_student import add_student
 from gym_bot_project.functions.gpt_request import GPTRequest
 from gym_bot_project.functions.choose_trainer import choose_trainer
@@ -63,6 +63,21 @@ def save_video_main(message):
 @bot.message_handler(func=lambda message: message.text == "Видео тренировок")
 def view_videos_main(message):
     view_videos(message, bot)
+
+
+@bot.callback_query_handler(func=lambda call: call.data in ["week", "month", "year", "custom"])
+def workout_plan_callback_handler(call):
+    workout_plan_callback(call, bot)
+
+
+@bot.callback_query_handler(func=lambda call: call.data in ["day", "back_plan_train"])
+def workout_plan_callback_handler(call):
+    custom_date_callback(call, bot)
+
+
+@bot.message_handler(func=lambda message: message.text.startswith("День тренировки "))
+def handle_custom_date_main(message):
+    handle_custom_date(message, bot)
 
 
 def main(bot):
