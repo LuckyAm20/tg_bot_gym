@@ -1,4 +1,6 @@
 import telebot
+from dotenv import load_dotenv
+import os
 from gym_bot_project.databases.create_general_table import create_table
 from gym_bot_project.functions import save_video, view_videos
 from gym_bot_project.functions.nutrition_plan import nutrition_plan
@@ -9,7 +11,8 @@ from gym_bot_project.functions.training_plan import workout_plan
 from gym_bot_project.functions.add_student import add_student
 from gym_bot_project.functions.gpt_request import GPTRequest
 from gym_bot_project.functions.choose_trainer import choose_trainer
-bot = telebot.TeleBot('6526395657:AAHJSODAFWPnJN1o6SxVt11OlQ5Jc-wec-4')
+load_dotenv()
+bot = telebot.TeleBot(os.getenv("TELEGRAM_API_TOKEN"))
 
 
 @bot.message_handler(commands=['start'])
@@ -49,7 +52,7 @@ def nutrition_plan_main(message):
 
 @bot.message_handler(func=lambda message: message.text == "Запрос в GPT")
 def send_gpt_request(message):
-    GPTRequest().send_gpt_request(message, bot)
+    GPTRequest(os.getenv("OPEN_API_KEY")).send_gpt_request(message, bot)
 
 
 @bot.message_handler(content_types=['video'])
@@ -62,10 +65,10 @@ def view_videos_main(message):
     view_videos(message, bot)
 
 
-def main():
+def main(bot):
     create_table()
     bot.polling()
 
 
 if __name__ == '__main__':
-    main()
+    main(bot)
