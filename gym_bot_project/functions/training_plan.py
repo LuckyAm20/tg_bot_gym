@@ -3,7 +3,7 @@ from gym_bot_project.students import watch_workout_plan
 from gym_bot_project.trainers import add_workout_plan
 
 
-def input_student_id_for_workout_plan(message, bot):
+def workout_plan(message, bot):
     user_id = message.from_user.id
     if get_user_role(user_id) == "Тренер":
         bot.send_message(user_id, "Введите username ученика для добавления плана тренировок:")

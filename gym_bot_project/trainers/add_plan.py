@@ -1,7 +1,7 @@
 import datetime
-from gym_bot_project.relations.is_valid_student_id_for_trainer import is_valid_student_id_for_trainer
+from gym_bot_project.relations import is_valid_student_id_for_trainer
 from gym_bot_project.students.get_student_id import get_student_id_by_username
-from gym_bot_project.databases.add_workout_plan_database import add_workout_plan_to_database
+from gym_bot_project.databases import add_workout_plan_to_database
 
 
 def add_workout_plan(message, bot):
