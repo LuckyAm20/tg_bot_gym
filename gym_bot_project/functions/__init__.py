@@ -8,3 +8,4 @@ from .training_plan import workout_plan
 from .view_students import view_students
 from .nutrition_plan import nutrition_plan
 from .save_video import save_video
+from .view_videos import view_videos
