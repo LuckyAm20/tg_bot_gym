@@ -18,7 +18,7 @@ def process_choose_trainer(message, bot):
             conn.close()
             bot.send_message(user_id, f"Тренер {trainer_username} был выбран!")
             replace_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
-            replace_keyboard.add("План тренировок", "Диалог с тренером", "Задать вопрос", "Отчеты")
+            replace_keyboard.add("План тренировок", "Видео тренировок", "План питания")
             bot.send_message(user_id, "Теперь вы можете перейти в диалог с тренером.", reply_markup=replace_keyboard)
         else:
             bot.send_message(user_id, "Связь между вами и этим тренером уже существует.")

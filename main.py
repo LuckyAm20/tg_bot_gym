@@ -80,10 +80,10 @@ def handle_custom_date_main(message):
     handle_custom_date(message, bot)
 
 
-def main(bot):
+def main():
     create_table()
     bot.polling()
 
 
 if __name__ == '__main__':
-    main(bot)
+    main()
