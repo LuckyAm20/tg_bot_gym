@@ -1,5 +1,4 @@
-from .add_workout_plan_database import add_workout_plan_to_database
 from .create_general_table import create_table
-from .add_nutrition_plan_to_database import add_nutrition_plan_to_database
+from .add_nutrition_plan_to_database import add_plan_to_database
 from .save_video_link import save_video_link
 from .get_student_videos import get_student_videos_by_date

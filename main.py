@@ -81,8 +81,11 @@ def handle_custom_date_main(message):
 
 
 def main():
-    create_table()
-    bot.polling()
+    try:
+        create_table()
+        bot.polling()
+    except Exception:
+        main()
 
 
 if __name__ == '__main__':

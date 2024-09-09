@@ -9,6 +9,7 @@
 .idea/**/dictionaries
 .idea/**/shelf
 .idea
+gym_helper.db
 # AWS User-specific
 .idea/**/aws.xml
 

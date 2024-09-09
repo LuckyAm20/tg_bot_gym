@@ -21,6 +21,7 @@ def process_view_student_videos(message, bot):
     student_username = message.text
     student_id = get_student_id_by_username(student_username)
     if get_user_role(user_id) == "Ученик":
+        student_username = message.from_user.username
         student_id = message.from_user.id
 
     if student_id is not None:

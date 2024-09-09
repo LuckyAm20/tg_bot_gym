@@ -1,7 +1,7 @@
 import datetime
 from gym_bot_project.relations import is_valid_student_id_for_trainer
 from gym_bot_project.students.get_student_id import get_student_id_by_username
-from gym_bot_project.databases import add_workout_plan_to_database
+from gym_bot_project.databases import add_plan_to_database
 
 
 def add_workout_plan(message, bot):
@@ -37,5 +37,5 @@ def process_workout_date_for_plan(message, bot, student_id, student_username):
 def save_workout_plan(message, bot, student_id, workout_date, student_username):
     user_id = message.from_user.id
     workout_plan = message.text
-    add_workout_plan_to_database(student_id, workout_date, workout_plan)
+    add_plan_to_database(student_id, 'workout', workout_date, workout_plan)
     bot.send_message(user_id, f"План тренировки для ученика с username {student_username} на {workout_date} сохранен.")
