@@ -1,5 +1,8 @@
 import sqlite3
 import telebot
+
+from gym_bot_project.bot_data import Session
+from gym_bot_project.databases.tables import Role
 from gym_bot_project.students.handle_student_actions import handle_student_actions
 from gym_bot_project.trainers.handle_trainer_actions import handle_trainer_actions
 
@@ -12,14 +15,12 @@ def start(message, bot):
         bot.register_next_step_handler(message, check_username_set, bot)
     else:
         user_id = user.id
-        conn = sqlite3.connect('gym_helper.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM roles WHERE user_id=?", (user_id,))
-        result = cursor.fetchone()
-        conn.close()
+        session = Session()
+        result = session.query(Role).filter_by(user_id=user_id).first()
+        session.close()
 
         if result:
-            role = result[1]
+            role = result.role
             bot.reply_to(message, f"Привет, {user.first_name}! Ваша роль уже выбрана: {role}.")
             if role == "Тренер":
                 handle_trainer_actions(bot, user_id)

@@ -1,6 +1,6 @@
 import datetime
 
-from gym_bot_project.databases.add_nutrition_plan_to_database import add_plan_to_database
+from gym_bot_project.databases.add_plan_to_database import add_plan_to_database
 from gym_bot_project.relations.is_valid_student_id_for_trainer import is_valid_student_id_for_trainer
 from gym_bot_project.students.get_student_id import get_student_id_by_username
 

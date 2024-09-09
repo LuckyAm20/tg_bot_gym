@@ -1,10 +1,15 @@
 import sqlite3
 
+from gym_bot_project.bot_data import Session
+from gym_bot_project.databases.tables import Role
+
 
 def get_trainer_id_by_username(username):
-    conn = sqlite3.connect('gym_helper.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM roles WHERE username=? AND role='Тренер'", (username,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else None
+    session = Session()
+    result = session.query(Role).filter(
+        Role.username == username,
+        Role.role == 'Тренер'
+    ).first()
+    session.close()
+    return result.user_id if result else None
+

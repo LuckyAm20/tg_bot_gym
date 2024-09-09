@@ -1,22 +1,20 @@
-import sqlite3
-from gym_bot_project.functions.user_roles import get_user_role
+from gym_bot_project.bot_data import Session
+from gym_bot_project.databases.tables import Role, Relation
 
 
 def view_students(message, bot):
     user_id = message.from_user.id
-    if get_user_role(user_id) != "Тренер":
+    session = Session()
+    role = session.query(Role).filter_by(user_id=user_id).first()
+
+    if role is None or role.role != "Тренер":
         bot.reply_to(message, "Только тренеры могут просматривать учеников.")
     else:
-        conn = sqlite3.connect('gym_helper.db')
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT user_id, username FROM relations JOIN roles ON relations.student_id = roles.user_id WHERE relations.trainer_id = ?",
-            (user_id,))
-        students = cursor.fetchall()
-        conn.close()
+        students = session.query(Relation, Role).join(Role, Relation.student_id == Role.user_id).filter(Relation.trainer_id == user_id).all()
+        session.close()
 
         if students:
-            student_names = [f"{student[1]}" for student in students]
+            student_names = [f"{student[1].username}" for student in students]
             all_students = "\n".join(student_names)
             bot.send_message(user_id, f"Список всех учеников:\n{all_students}")
         else:

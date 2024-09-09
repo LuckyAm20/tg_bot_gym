@@ -1,5 +1,7 @@
-import datetime
-import sqlite3
+from datetime import datetime, timedelta
+
+from gym_bot_project.bot_data import Session
+from gym_bot_project.databases.tables import Plan
 
 
 def watch_workout_plan(message, bot):
@@ -7,25 +9,23 @@ def watch_workout_plan(message, bot):
     user_username = message.from_user.username
 
     if user_id is not None:
-        conn = sqlite3.connect('gym_helper.db')
-        cursor = conn.cursor()
+        session = Session()
+        today = datetime.now()
+        start_of_week = today - timedelta(days=today.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
 
-        today = datetime.datetime.now()
-        start_of_week = today - datetime.timedelta(days=today.weekday())
-        end_of_week = start_of_week + datetime.timedelta(days=6)
+        workout_plans = session.query(Plan).filter(
+            Plan.user_id == user_id,
+            Plan.plan_type == 'workout',
+            Plan.plan_date.between(start_of_week.date(), end_of_week.date())
+        ).all()
 
-        cursor.execute('''
-            SELECT plan_date, plan FROM plans
-            WHERE user_id = ? AND plan_type = 'workout' AND plan_date BETWEEN ? AND ?
-        ''', (user_id, start_of_week.date(), end_of_week.date()))
-
-        workout_plans = cursor.fetchall()
-        conn.close()
+        session.close()
 
         if workout_plans:
             response = f"Ваш план тренировок на текущую неделю с {start_of_week.date()} по {end_of_week.date()}:\n"
-            for workout_date, workout_plan in workout_plans:
-                response += f"Дата: {workout_date}, План: {workout_plan}\n"
+            for plan in workout_plans:
+                response += f"Дата: {plan.plan_date}, План: {plan.plan}\n"
             bot.send_message(user_id, response)
         else:
             bot.send_message(user_id, "У вас пока нет плана тренировок на текущую неделю.")
@@ -34,22 +34,20 @@ def watch_workout_plan(message, bot):
 
 
 def view_workout_plans(bot, user_id, start_date, end_date):
-    conn = sqlite3.connect('gym_helper.db')
-    cursor = conn.cursor()
+    session = Session()
 
-    cursor.execute('''
-        SELECT plan_date, plan FROM plans
-        WHERE user_id = ? AND plan_type = 'workout' AND plan_date BETWEEN ? AND ?
-    ''', (user_id, start_date, end_date))
+    workout_plans = session.query(Plan).filter(
+        Plan.user_id == user_id,
+        Plan.plan_type == 'workout',
+        Plan.plan_date.between(start_date, end_date)
+    ).all()
 
-    workout_plans = cursor.fetchall()
-    conn.close()
+    session.close()
 
     if workout_plans:
         response = f"Ваш план тренировок за период с {start_date} по {end_date}:\n"
-        for workout_date, workout_plan in workout_plans:
-            response += f"Дата: {workout_date}, План: {workout_plan}\n"
+        for plan in workout_plans:
+            response += f"Дата: {plan.plan_date}, План: {plan.plan}\n"
         bot.send_message(user_id, response)
     else:
         bot.send_message(user_id, f"У вас пока нет плана тренировок за период с {start_date} по {end_date}.")
-

@@ -1,17 +1,20 @@
-import sqlite3
+from datetime import datetime
+
+from gym_bot_project.bot_data import Session
+from gym_bot_project.databases.tables import Video
 
 
 def get_student_videos_by_date(user_id, view_date):
-    conn = sqlite3.connect('gym_helper.db')
-    cursor = conn.cursor()
+    session = Session()
 
-    cursor.execute('''
-        SELECT video_url, upload_date FROM videos
-        WHERE user_id = ? AND DATE(upload_date) = ?
-    ''', (user_id, view_date))
+    view_date = datetime.strptime(view_date, '%Y-%m-%d').date()
 
-    videos = cursor.fetchall()
-    conn.close()
+    videos = session.query(Video.video_url, Video.upload_date).filter(
+        Video.user_id == user_id,
+        Video.upload_date == view_date
+    ).all()
+
+    session.close()
 
     return videos
 

@@ -11,6 +11,7 @@ from gym_bot_project.functions.training_plan import workout_plan, workout_plan_c
 from gym_bot_project.functions.add_student import add_student
 from gym_bot_project.functions.gpt_request import GPTRequest
 from gym_bot_project.functions.choose_trainer import choose_trainer
+
 load_dotenv()
 bot = telebot.TeleBot(os.getenv("TELEGRAM_API_TOKEN"))
 

@@ -1,18 +1,22 @@
-import sqlite3
+from gym_bot_project.bot_data import Session
+from gym_bot_project.databases.tables import Role
 
 
 def add_user_role(user_id, role, username):
-    conn = sqlite3.connect('gym_helper.db')
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO roles (user_id, role, username) VALUES (?, ?, ?)", (user_id, role, username))
-    conn.commit()
-    conn.close()
+    session = Session()
+    user = session.query(Role).filter_by(user_id=user_id).first()
+    if user:
+        user.role = role
+        user.username = username
+    else:
+        new_user = Role(user_id=user_id, role=role, username=username)
+        session.add(new_user)
+    session.commit()
+    session.close()
 
 
 def get_user_role(user_id):
-    conn = sqlite3.connect('gym_helper.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT role FROM roles WHERE user_id=?", (user_id,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else None
+    session = Session()
+    user_role = session.query(Role.role).filter_by(user_id=user_id).first()
+    session.close()
+    return user_role[0] if user_role else None

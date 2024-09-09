@@ -1,10 +1,11 @@
 import sqlite3
 
+from gym_bot_project.bot_data import Session
+from gym_bot_project.databases.tables import Relation
+
 
 def has_trainer(student_id):
-    conn = sqlite3.connect('gym_helper.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM relations WHERE student_id=?", (student_id,))
-    result = cursor.fetchone()
-    conn.close()
+    session = Session()
+    result = session.query(Relation).filter_by(student_id=student_id).first()
+    session.close()
     return result is not None
