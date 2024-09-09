@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 
-from gym_bot_project.bot_data import Session
+from gym_bot_project.bot_data import Session, bot
 from gym_bot_project.databases.tables import Plan
 
 
-def watch_workout_plan(message, bot):
+def watch_workout_plan(message):
     user_id = message.from_user.id
     user_username = message.from_user.username
 
@@ -33,7 +33,7 @@ def watch_workout_plan(message, bot):
         bot.send_message(user_id, f"Ученика с username {user_username} не существует.")
 
 
-def view_workout_plans(bot, user_id, start_date, end_date):
+def view_workout_plans(user_id, start_date, end_date):
     session = Session()
 
     workout_plans = session.query(Plan).filter(

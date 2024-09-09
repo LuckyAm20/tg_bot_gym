@@ -1,8 +1,10 @@
 import datetime
 import os
 
+from gym_bot_project.bot_data import bot
 
-def save_video_file(bot, user_id, video_file):
+
+def save_video_file(user_id, video_file):
     folder_path = create_student_video_folder(user_id)
     file_path = os.path.join(folder_path, f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.mp4")
 

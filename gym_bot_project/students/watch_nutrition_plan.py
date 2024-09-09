@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 
-from gym_bot_project.bot_data import Session
+from gym_bot_project.bot_data import Session, bot
 from gym_bot_project.databases.tables import Plan
 
 
-def watch_nutrition_plan(message, bot):
+def watch_nutrition_plan(message):
     user_id = message.from_user.id
     user_username = message.from_user.username
 

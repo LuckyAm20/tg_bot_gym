@@ -1,10 +1,10 @@
-from gym_bot_project.bot_data import Session
+from gym_bot_project.bot_data import Session, bot
 from gym_bot_project.databases.tables import Relation
 from gym_bot_project.students.get_student_id import get_student_id_by_username
 from gym_bot_project.relations.is_student_linked_to_another_trainer import is_student_linked_to_another_trainer
 
 
-def process_add_student(message, bot):
+def process_add_student(message):
     user_id = message.from_user.id
     student_username = message.text
     student_id = get_student_id_by_username(student_username)

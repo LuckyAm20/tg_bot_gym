@@ -1,5 +1,6 @@
 import requests
 
+from gym_bot_project.bot_data import bot
 from gym_bot_project.functions import get_user_role
 
 
@@ -7,15 +8,15 @@ class GPTRequest:
     def __init__(self, openai_api_key):
         self.openai_api_key = openai_api_key
 
-    def send_gpt_request(self, message, bot):
+    def send_gpt_request(self, message):
         user_id = message.from_user.id
         if get_user_role(user_id) == "Тренер":
             bot.send_message(user_id, "Введите ваш запрос для GPT:")
-            bot.register_next_step_handler(message, self.process_gpt_request, bot)
+            bot.register_next_step_handler(message, self.process_gpt_request)
         else:
             bot.send_message(user_id, "Эта опция доступна только тренерам.")
 
-    def process_gpt_request(self, message, bot):
+    def process_gpt_request(self, message):
         user_id = message.from_user.id
         request = message.text
 

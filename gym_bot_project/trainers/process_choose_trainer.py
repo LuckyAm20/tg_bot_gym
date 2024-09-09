@@ -1,13 +1,13 @@
 import sqlite3
 import telebot
 
-from gym_bot_project.bot_data import Session
+from gym_bot_project.bot_data import Session, bot
 from gym_bot_project.databases.tables import Relation
 from gym_bot_project.relations.is_relation import is_relation_exist
 from gym_bot_project.trainers.get_trainer_id import get_trainer_id_by_username
 
 
-def process_choose_trainer(message, bot):
+def process_choose_trainer(message):
     user_id = message.from_user.id
     trainer_username = message.text
     trainer_id = get_trainer_id_by_username(trainer_username)

@@ -3,15 +3,16 @@ import telebot
 from .user_roles import get_user_role
 from gym_bot_project.trainers import process_choose_trainer
 from gym_bot_project.relations.has_trainer import has_trainer
+from ..bot_data import bot
 
 
-def choose_trainer(message, bot):
+def choose_trainer(message):
     user_id = message.from_user.id
     if get_user_role(user_id) != "Ученик":
         bot.reply_to(message, "Только ученики могут выбирать тренера.")
     elif not has_trainer(user_id):
         bot.send_message(user_id, "Введите username тренера, которого вы хотите выбрать:")
-        bot.register_next_step_handler(message, process_choose_trainer, bot)
+        bot.register_next_step_handler(message, process_choose_trainer)
     else:
         bot.send_message(user_id, "У вас уже есть тренер.")
         replace_keyboard = telebot.types.ReplyKeyboardMarkup(row_width=2)
